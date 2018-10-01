@@ -10,11 +10,12 @@ import {
 @Component({
 	selector: 'gt-checkbox',
 	template: `
-    <label class="custom-control custom-checkbox p-0" (click)="$event.stopPropagation()">
-      <input #checkbox type="checkbox" class="custom-control-input" [(checked)]="checked" (change)="toggle($event);">
-      <span class="custom-control-label"></span>
-    </label>
-  `,
+		<label class="custom-control custom-checkbox p-0" (click)="$event.stopPropagation()">
+			<input #checkbox type="checkbox" class="custom-control-input" [(checked)]="checked"
+				   (change)="toggle($event);" [attr.aria-label]="ariaLabel">
+			<span class="custom-control-label"></span>
+		</label>
+	`,
 	styles: []
 })
 export class GtCheckboxComponent implements OnInit {
@@ -28,6 +29,7 @@ export class GtCheckboxComponent implements OnInit {
 	set initialValue(value: boolean) {
 		this._initialValue = value;
 	}
+
 	get checked(): boolean {
 		return this._checked;
 	}
@@ -37,13 +39,17 @@ export class GtCheckboxComponent implements OnInit {
 		this._checked = value;
 	}
 
+	@Input() ariaLabel = '';
+
 	private _checked: boolean;
 	private _initialValue: boolean;
 	@Output() changed: EventEmitter<boolean> = new EventEmitter();
 
-	constructor() {}
+	constructor() {
+	}
 
-	ngOnInit() {}
+	ngOnInit() {
+	}
 
 	toggle(checked: boolean) {
 		this.changed.emit(this.checked);

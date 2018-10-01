@@ -1,17 +1,24 @@
 <table class="table" ngClass="{{gtClasses}} {{gtOptions.stack ? 'table-stacked':''}}"
-       *ngIf="gtFields && gtSettings && (gtFields | gtVisible:gtSettings:refreshPipe).length > 0">
+       *ngIf="gtFields && gtSettings && (gtFields | gtVisible:gtSettings:refreshPipe).length > 0"
+       [summary]="ariaConfig.summary ? ariaConfig.summary : ''">
+  <ng-template ngIf="captionConfig?.caption">
+    <caption *ngIf="ariaConfig?.captionConfig?.showCaption">{{ariaConfig?.captionConfig?.caption}}</caption>
+  </ng-template>
   <thead>
   <tr>
     <th class="gt-sort-label" *ngIf="gtOptions.stack">{{gtTexts.sortLabel}}</th>
     <th *ngFor="let column of gtSettings | gtVisible:gtSettings:refreshPipe"
         ngClass="{{column.objectKey +'-column' | dashCase}} {{gtFields | gtProperty:column.objectKey:'classNames'}} {{column.sortEnabled ? 'sort-'+column.sort:''}} {{column.sortEnabled && column.sortOrder >= 0  ? 'sort-order-'+column.sortOrder:''}} {{ gtFields | gtColumnClass:column }}"
-        (click)="column.sortEnabled ? gtSort(column.objectKey,$event):'';">
-      <span *ngIf="!(gtFields | gtProperty:column.objectKey:'header')">{{gtFields | gtProperty:column.objectKey:'name'}}</span>
+        (click)="column.sortEnabled ? gtSort(column.objectKey,$event):'';" scope="col" tabindex="0">
+      <span
+        *ngIf="!(gtFields | gtProperty:column.objectKey:'header')">{{gtFields | gtProperty:column.objectKey:'name'}}</span>
       <gt-custom-component-factory *ngIf="(gtFields | gtProperty:column.objectKey:'header')"
                                    [type]="(gtFields | gtProperty:column.objectKey:'header')?.type"
                                    [injector]="(gtFields | gtProperty:column.objectKey:'header')?.injector"
                                    [column]="gtFields | gtProperty:column.objectKey:'name'"></gt-custom-component-factory>
-      <gt-checkbox *ngIf="(gtFields | gtProperty:column.objectKey:'columnComponent')?.type === 'checkbox'" [checked]="(gtOptions.lazyLoad ? lazyAllSelected:selectedRows.length === gtData.length)" (changed)="toggleAllRows()"></gt-checkbox>
+      <gt-checkbox *ngIf="(gtFields | gtProperty:column.objectKey:'columnComponent')?.type === 'checkbox'"
+                   [checked]="(gtOptions.lazyLoad ? lazyAllSelected:selectedRows.length === gtData.length)"
+                   (changed)="toggleAllRows()" ariaLabel="select all rows"></gt-checkbox>
     </th>
   </tr>
   </thead>
@@ -39,26 +46,34 @@
   <tbody *ngIf="gtData && gtInfo">
   <ng-template class="table-rows" ngFor let-row let-last="last" [ngForTrackBy]="trackByFn"
                [ngForOf]="gtOptions.lazyLoad && gtInfo ? (gtData[gtInfo.pageCurrent-1]) : (gtData | gtFilter:gtInfo.filter:gtInfo:refreshFilter:gtData.length | gtSearch:gtInfo.searchTerms:gtInfo:gtSettings:gtFields:gtData.length | gtOrderBy:sortOrder:gtFields:refreshSorting:gtData.length | gtChunk:gtInfo:gtInfo.recordLength:gtInfo.pageCurrent:refreshPageArray:gtData.length:gtEvent:data | gtRowClass:gtFields)">
-    <tr [ngClass]="{'row-selected':metaInfo[row.$$gtRowId]?.isSelected, 'row-open':metaInfo[row.$$gtRowId]?.isOpen, 'row-loading':loading, 'row-expandable':gtRowComponent}"
+    <tr [tabindex]="ariaConfig?.rowTabIndex ? ariaConfig?.rowTabIndex : -1"
+        [attr.role]="ariaConfig?.rowRole ? ariaConfig?.rowRole : ''"
+        [ngClass]="{'row-selected':metaInfo[row.$$gtRowId]?.isSelected, 'row-open':metaInfo[row.$$gtRowId]?.isOpen, 'row-loading':loading, 'row-expandable':gtRowComponent}"
         class="{{row.$$gtRowClass}}"
         (click)="gtOptions.rowSelection ? toggleSelect(row):rowClick(row, $event)">
-      <td *ngFor="let column of row | gtRender:gtSettings:gtFields:refreshPipe:loading:gtOptions.highlightSearch:gtInfo.searchTerms;trackBy:trackByColumnFn"
-          ngClass="{{column.objectKey +'-column' | dashCase}} {{gtFields | gtProperty:column.objectKey:'classNames'}} {{(gtFields | gtProperty:column.objectKey:'inlineEdit') ? 'gt-inline-edit':''}} {{column.edited ? 'gt-edited':''}} {{ gtFields | gtColumnClass:column:row }}">
+      <td
+        *ngFor="let column of row | gtRender:gtSettings:gtFields:refreshPipe:loading:gtOptions.highlightSearch:gtInfo.searchTerms;trackBy:trackByColumnFn"
+        ngClass="{{column.objectKey +'-column' | dashCase}} {{gtFields | gtProperty:column.objectKey:'classNames'}} {{(gtFields | gtProperty:column.objectKey:'inlineEdit') ? 'gt-inline-edit':''}} {{column.edited ? 'gt-edited':''}} {{ gtFields | gtColumnClass:column:row }}">
                         <span class="gt-row-label"
                               *ngIf="gtOptions.stack">{{(gtFields | gtProperty:column.objectKey:'stackedHeading') ? (gtFields | gtProperty:column.objectKey:'stackedHeading') : (gtFields | gtProperty:column.objectKey:'name')}}</span>
-        <gt-custom-component-factory *ngIf="column.columnComponent && column.columnComponent.type !== 'checkbox'" class="gt-row-content"
+        <gt-custom-component-factory *ngIf="column.columnComponent && column.columnComponent.type !== 'checkbox'"
+                                     class="gt-row-content"
                                      [type]="column.columnComponent.type"
                                      [injector]="column.columnComponent.injector" [row]="row"
                                      [column]="column" (redrawEvent)="redraw($event)"
-                                     [searchTerms]="gtInfo.searchTerms"  (searchEvent)="redraw($event)"
+                                     [searchTerms]="gtInfo.searchTerms" (searchEvent)="redraw($event)"
                                      (click)="column.click ? column.click(row,column,$event):'';column.expand ? toggleCollapse(row, column.expand):''"></gt-custom-component-factory>
-        <span *ngIf="!column.columnComponent && (!(gtFields | gtProperty:column.objectKey:'inlineEdit') || ((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsObservable) && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | async) || (!((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsObservable) && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsEditable:row:refreshPipe)))"
-              class="gt-row-content" [innerHTML]="column.renderValue"
-              (click)="column.click ? column.click(row,column,$event):'';column.expand ? toggleCollapse(row, column.expand):''"></span>
+        <span
+          *ngIf="!column.columnComponent && (!(gtFields | gtProperty:column.objectKey:'inlineEdit') || ((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsObservable) && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | async) || (!((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsObservable) && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsEditable:row:refreshPipe)))"
+          class="gt-row-content" [innerHTML]="column.renderValue"
+          (click)="column.click ? column.click(row,column,$event):'';column.expand ? toggleCollapse(row, column.expand):''"></span>
         <ng-template
           [ngIf]="!column.columnComponent && (((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsObservable) && ((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | async) || ((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active | gtIsEditable:row:refreshPipe))">
-          <ng-template [ngIf]="([true,'email','number','password', 'text'].indexOf((gtFields | gtProperty:column.objectKey:'inlineEdit').type) !== -1) || !(gtFields | gtProperty:column.objectKey:'inlineEdit').type">
-            <input class="inline-edit" [attr.type]="!(gtFields | gtProperty:column.objectKey:'inlineEdit').type ? 'text' : !((gtFields | gtProperty:column.objectKey:'inlineEdit').type | gtIsObservable) ? (gtFields | gtProperty:column.objectKey:'inlineEdit').type:(gtFields | gtProperty:column.objectKey:'inlineEdit').type | async" [(ngModel)]="column.renderValue"
+          <ng-template
+            [ngIf]="([true,'email','number','password', 'text'].indexOf((gtFields | gtProperty:column.objectKey:'inlineEdit').type) !== -1) || !(gtFields | gtProperty:column.objectKey:'inlineEdit').type">
+            <input class="inline-edit"
+                   [attr.type]="!(gtFields | gtProperty:column.objectKey:'inlineEdit').type ? 'text' : !((gtFields | gtProperty:column.objectKey:'inlineEdit').type | gtIsObservable) ? (gtFields | gtProperty:column.objectKey:'inlineEdit').type:(gtFields | gtProperty:column.objectKey:'inlineEdit').type | async"
+                   [(ngModel)]="column.renderValue"
                    (input)="gtUpdateColumn($event,row, column)">
             <span class="gt-inline-edit-notice">{{gtTexts.inlineEditEdited}}</span>
           </ng-template>
@@ -70,10 +85,13 @@
             inline editing module
           </gt-dropdown>
         </ng-template>
-        <ng-template [ngIf]="!column.columnComponent && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active) ">
+        <ng-template
+          [ngIf]="!column.columnComponent && !((gtFields | gtProperty:column.objectKey:'inlineEdit')?.active) ">
           <ng-template
             [ngIf]="[true,'email','number','password'].indexOf(gtFields | gtProperty:column.objectKey:'inlineEdit') !== -1">
-            <input class="inline-edit" [attr.type]="(gtFields | gtProperty:column.objectKey:'inlineEdit') === true ? 'text':(gtFields | gtProperty:column.objectKey:'inlineEdit')" [(ngModel)]="column.renderValue"
+            <input class="inline-edit"
+                   [attr.type]="(gtFields | gtProperty:column.objectKey:'inlineEdit') === true ? 'text':(gtFields | gtProperty:column.objectKey:'inlineEdit')"
+                   [(ngModel)]="column.renderValue"
                    (input)="gtUpdateColumn($event,row, column)">
             <span class="gt-inline-edit-notice">{{gtTexts.inlineEditEdited}}</span>
           </ng-template>
@@ -85,7 +103,8 @@
             inline editing module
           </gt-dropdown>
         </ng-template>
-        <gt-checkbox *ngIf="column.columnComponent && column.columnComponent.type === 'checkbox'" [checked]="metaInfo[row.$$gtRowId]?.isSelected" (changed)="toggleSelect(row)"></gt-checkbox>
+        <gt-checkbox *ngIf="column.columnComponent && column.columnComponent.type === 'checkbox'"
+                     [checked]="metaInfo[row.$$gtRowId]?.isSelected" (changed)="toggleSelect(row)"></gt-checkbox>
       </td>
     </tr>
     <tr class="row-expanded" *ngIf="metaInfo[row.$$gtRowId]?.isOpen">
